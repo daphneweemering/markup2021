@@ -1,0 +1,129 @@
+---
+title: "Markup languages and reproducible programming - Assignment 2"
+author: "Daphne Weemering"
+date: "October 26th, 2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+The objectives of this assignment is to design a study that:
+
+* Does something that requires RNG
+* Fixes the RNG seed
+* Replicates the results 
+* Generates a reproducible archive/reprex/markdown
+* Will run on another machine without trouble
+* Communicates the info of the session
+
+# Design a simulation study 
+
+Start with loading in the necessary libraries. For this simple simulation project,
+only `ggplot2` is necessary.
+```{r}
+library(ggplot2)
+```
+
+Then, let's start with setting a seed
+```{r}
+set.seed(1234)
+```
+
+For this assignment, I will generate data for two different populations (different 
+mean) and evaluate their difference by means of a simple t-test. For 
+each t-test the 95% confidence interval is obtained. At the end, a plot will be 
+shown where the confidence intervals are displayed. 
+
+First, I set the number of simulations and the number of iterations. 
+```{r}
+nsim <- 100 # number of simulations
+n <- 100 # number of observations per simulation
+``` 
+
+Then, some storage is created to store the 95% confidence intervals.
+```{r}
+res <- matrix(NA, ncol = 2, nrow = nsim)
+``` 
+
+Next, the data is generated and a t-test is ran on each iteration. 
+```{r}
+for (i in 1:nsim){
+  s1 <- rnorm(n, 10, 5)
+  s2 <- rnorm(n, 12, 5)
+  result <- t.test(s1, s2)
+  res[i,] <- result$conf.int
+  rm(result, s1, s2)
+}
+```
+
+Convert the matrix `res` into a `data.frame` (needed for ggplot). 
+```{r}
+res <- as.data.frame(res)
+names(res) <- c('LowerboundCI', 'UpperboundCI')
+```
+
+And add the simulation number to the data frame. 
+```{r}
+res$Simulation_number <- 1:nrow(res)
+```
+
+Then, I make a plot of the confidence intervals. You can see that the difference 
+between the two groups is not always significantly different from zero. 
+```{r}
+ggplot(res) + 
+  theme_bw() + 
+  geom_linerange(aes(x = Simulation_number, ymin = LowerboundCI, ymax = UpperboundCI)) +
+  geom_hline(yintercept = 0, linetype = 'dashed')
+```
+
+# Replicate the simulation study 
+Now, we can replicate the same study by using a different seed.
+
+```{r}
+set.seed(4321)
+```
+
+This again sets the number of simulations and the number of observations.
+```{r}
+nsim <- 100 # number of simulations
+n <- 100 # number of observations per simulation
+``` 
+
+This will create some storage for the confidence intervals.
+```{r}
+res <- matrix(NA, ncol = 2, nrow = nsim)
+``` 
+
+Here, the data is generated and a t-test is ran on each iteration. 
+```{r}
+for (i in 1:nsim){
+  s1 <- rnorm(n, 10, 5)
+  s2 <- rnorm(n, 12, 5)
+  result <- t.test(s1, s2)
+  res[i,] <- result$conf.int
+  rm(result, s1, s2)
+}
+```
+
+Convert the matrix `res` into a `data.frame`. 
+```{r}
+res <- as.data.frame(res)
+names(res) <- c('LowerboundCI', 'UpperboundCI')
+```
+
+And add the simulation number to the data frame. 
+```{r}
+res$Simulation_number <- 1:nrow(res)
+```
+
+And again, make a plot of the result.
+```{r}
+ggplot(res) + 
+  theme_bw() + 
+  geom_linerange(aes(x = Simulation_number, ymin = LowerboundCI, ymax = UpperboundCI)) +
+  geom_hline(yintercept = 0, linetype = 'dashed')
+```
+
+
+
+
