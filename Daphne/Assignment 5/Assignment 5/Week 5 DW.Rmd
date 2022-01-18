@@ -1,0 +1,215 @@
+---
+title: "Sample size reestimation in N-of-1 trials"
+author: "Daphne Weemering"
+date: "January 2022"
+output: 
+    ioslides_presentation:
+        logo: logo2.png
+bibliography: reference.bib
+    
+---
+
+## What are N-of-1 trials?
+*A randomized controlled multiple crossover trial where a single patient repeatedly receives both the treatment and control intervention in a random order.*
+
+![**The setup of N-of-1 trials (with washout period between successive treatments)** [@chen2014]](/Users/daphneweemering/Google Drive/UU/Electives/Markup language and reproducible programming/Assignment 5/chenandchen.png)
+
+
+## Sample size estimation in N-of-1 trials
+- Combining results separate N-of-1 trials allows for estimating population treatment effect;
+- Prior to study calculate necessary number of patients (*n*) and number of cycles (*k*);
+  - **Problem**: Unknown parameter values for sample size calculation
+  - **Follow-up problem**: Unrealistic assumptions for parameters leads to under- or overpowered study
+  
+## Reestimating sample size 
+Enter the (potential) solution: Interim sample size reestimation. This works as follows:
+
+1. Make assumptions about unknown parameter(s)
+2. Calculate sample size under hypothesized parameter values
+3. Observe a part of the patients (25, 50, 75 percent) and estimate the parameters
+4. Use the interim estimates of the unknown parameters to recalculate sample size
+5. Observe the remaining patients 
+
+## Population model
+$$
+\begin{aligned}
+d_{ij} &= \tau_i + \epsilon_{ij},    i=1,...,n, j=1,...k \\
+\tau_i & \sim N(T, \psi^2) \\
+\epsilon_{ij} & \sim N(0, 2\sigma^2)
+\end{aligned}
+$$
+
+- *n* denotes patient, *k* denotes cycle;
+- Then *i* indexes the patient and *j* the cycle;
+-  $d_{ij}$ is the observed treatment difference for patient *i* in cycle *j*;
+- $\tau_1,...,\tau_n$ are the random treatment effects with an assumed mean *T* and variance \(\psi^2\);
+- $\epsilon_{ij}$ are random within-patient within-cycle disturbance terms [@senn2019]
+
+## How to generate data for N-of-1 trials?
+<style>
+pre {
+    line-height: 1.2em;
+    font-size: 12px;
+}
+</style>
+```{r, eval = F, fig.dim=c(4,2)}
+# Set a seed
+set.seed(47)
+
+# Specify variance of treatment effect and variance of error
+var_treatment <- 2
+var_error <- 1
+
+# Specify mean treatment effect 
+avg_treatment <- 1
+
+# Number of patients, cycles and simulations
+n_patients <- 10 
+n_cycles <- 3
+N <- 10
+
+# Make storage 
+treatment_effect <- matrix(data = NA, nrow = n_patients, ncol = N)
+random_error <- matrix(data = NA, nrow = n_patients*n_cycles, ncol = N)
+d_ij <- matrix(data = NA, nrow = n_patients*n_cycles, ncol = N)
+
+# Draw random values
+for(i in 1:N){
+  treatment_effect[,i] <- rnorm(n = n_patients, mean = avg_treatment, sd = sqrt(var_treatment))
+  random_error[,i] <- rnorm(n = n_patients*n_cycles, mean = 0, sd = sqrt(2*var_error))
+  }
+  
+# Duplicate the values for the treatment effect for each cycle 
+treatment_effect <- (apply(treatment_effect, 2, rep, each = 3))
+  
+for(i in 1:N){
+d_ij[,i] <- treatment_effect[,i] + random_error[,i]
+  }
+
+```
+
+## Setup for simulation studies
+<div class="columns-2">
+- Data is generated under model with true parameter values
+- Initial sample size is calculated under potentially wrong assumptions and compared with the model under the right assumptions
+  
+<center>
+<img src="/Users/daphneweemering/Google Drive/UU/Electives/Markup language and reproducible programming/Assignment 5/fig2.png" alt="HTML5 Icon" width = 115%>
+</center>
+
+</div>
+
+## What the data looks like
+<div style = "width:80%; height:auto; margin: auto;">
+```{r, echo = F, fig.dim=c(1,1), cache=T, message=F}
+# Set a seed
+set.seed(47)
+
+# Specify variance of treatment effect and variance of error
+var_treatment <- 2
+var_error <- 1
+
+# Specify mean treatment effect 
+avg_treatment <- 1
+
+# Number of patients, cycles and simulations
+n_patients <- 10 
+n_cycles <- 3
+N <- 10
+
+# Make storage 
+treatment_effect <- matrix(data = NA, nrow = n_patients, ncol = N)
+random_error <- matrix(data = NA, nrow = n_patients*n_cycles, ncol = N)
+d_ij <- matrix(data = NA, nrow = n_patients*n_cycles, ncol = N)
+
+# Draw random values
+for(i in 1:N){
+  treatment_effect[,i] <- rnorm(n = n_patients, mean = avg_treatment, sd = sqrt(var_treatment))
+  random_error[,i] <- rnorm(n = n_patients*n_cycles, mean = 0, sd = sqrt(2*var_error))
+  }
+  
+# Duplicate the values for the treatment effect for each cycle 
+treatment_effect <- (apply(treatment_effect, 2, rep, each = 3))
+  
+for(i in 1:N){
+d_ij[,i] <- treatment_effect[,i] + random_error[,i]
+}
+
+# Change the column names
+colnames(d_ij) <- c(1:N) # Set column names to 1:N
+colnames(d_ij) <- paste("Simulation ", colnames(d_ij), sep = "")
+
+require(DT)
+
+datatable(d_ij, extensions = 'FixedColumns', options = list(pageLength = 5,
+  scrollX = '300px',
+  scrollCollapse = TRUE))
+``` 
+</div>
+
+<font size="2"> 
+Simulated values for the outcome ($d_{ij}$) for 10 patients and 3 cycles (see previous slide for parameter settings). Notice that: column 1, rows 1-3: data patient 1 in simulation 1 for cycles 1, 2 and 3 respectively (and so on for the rest of the data). 
+</font>
+
+## What the data looks like
+```{r, message=F, echo=F, fig.width=2, fig.height=2, warning=F}
+
+# Set a seed
+set.seed(47)
+
+# Specify variance of treatment effect and variance of error
+var_treatment <- 2
+var_error <- 1
+
+# Specify mean treatment effect 
+avg_treatment <- 1
+
+# Number of patients, cycles and simulations
+n_patients <- 10 
+n_cycles <- 3
+N <- 10
+
+# Make storage 
+treatment_effect <- matrix(data = NA, nrow = n_patients, ncol = N)
+random_error <- matrix(data = NA, nrow = n_patients*n_cycles, ncol = N)
+d_ij <- matrix(data = NA, nrow = n_patients*n_cycles, ncol = N)
+
+# Draw random values
+for(i in 1:N){
+  treatment_effect[,i] <- rnorm(n = n_patients, mean = avg_treatment, sd = sqrt(var_treatment))
+  random_error[,i] <- rnorm(n = n_patients*n_cycles, mean = 0, sd = sqrt(2*var_error))
+  }
+  
+# Duplicate the values for the treatment effect for each cycle 
+treatment_effect <- (apply(treatment_effect, 2, rep, each = 3))
+  
+for(i in 1:N){
+d_ij[,i] <- treatment_effect[,i] + random_error[,i]
+}
+
+require(ggplot2)
+require(plotly)
+require(IRdisplay) 
+
+# Pick only the first simulation 
+dat <- data.frame(outcome <- d_ij[1:30, 1], 
+                  patient <- factor(sort(rep((1:n_patients), n_cycles))))
+
+names(dat)[1] <- 'Outcome'
+names(dat)[2] <- 'Patient'
+
+p <- ggplot(data = dat, aes(outcome)) +
+  geom_density(alpha = 0.7) + 
+  ggtitle("Treatment effect of combined results of 10 N-of-1 trials") +
+  xlim(-6, 6)
+
+p2 <- ggplotly(p)
+
+htmlwidgets::saveWidget(as.widget(p2), file = "demo.html")
+
+```
+<iframe src="demo.html" style="position:absolute;height:70%;width:80%"></iframe>
+
+## References
+
+
